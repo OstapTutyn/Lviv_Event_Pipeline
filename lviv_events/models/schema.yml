@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: stg_raw_events
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: title
+        tests:
+          - not_null
+      - name: link
+        tests:
+          - not_null
+
+  - name: fct_events
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: title
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+      - name: link
+        tests:
+          - not_null
+
+  - name: active_events
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: title
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+      - name: link
+        tests:
+          - not_null
+
+  - name: past_events
+    columns:
+      - name: id
+        tests:
+          - not_null
+          - unique
+      - name: title
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+      - name: link
+        tests:
+          - not_null

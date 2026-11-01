@@ -1,0 +1,29 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Airflow and dbt generated files
+logs/
+lviv_events/logs/
+lviv_events/target/
+lviv_events/dbt_packages/
+
+# Local databases and runtime data
+postgres-db-volume/
+*.db
+*.sqlite
+
+# IDE and OS files
+.idea/
+.DS_Store
+
