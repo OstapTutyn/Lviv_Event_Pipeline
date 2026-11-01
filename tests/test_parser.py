@@ -1,4 +1,5 @@
 import importlib.util
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -36,3 +37,48 @@ def test_payload_hash_is_stable_for_key_order():
     second = {"link": first["link"], "date": first["date"], "title": first["title"]}
 
     assert event_utils.payload_hash(first) == event_utils.payload_hash(second)
+
+
+def test_select_new_event_candidates_includes_first_seen_unnotified_event():
+    rows = [
+        (
+            "https://example.test/new",
+            "Нова подія",
+            "1 січня",
+            "hash-new",
+            datetime.now(timezone.utc),
+            None,
+        )
+    ]
+
+    assert event_utils.select_new_event_candidates(rows) == [rows[0][:4]]
+
+
+def test_select_new_event_candidates_skips_unchanged_notified_event():
+    rows = [
+        (
+            "https://example.test/unchanged",
+            "Подія",
+            "1 січня",
+            "hash-same",
+            datetime.now(timezone.utc),
+            "https://example.test/unchanged",
+        )
+    ]
+
+    assert event_utils.select_new_event_candidates(rows) == []
+
+
+def test_select_new_event_candidates_skips_changed_existing_event():
+    rows = [
+        (
+            "https://example.test/changed",
+            "Оновлена подія",
+            "2 січня",
+            "hash-new-version",
+            datetime.now(timezone.utc),
+            "https://example.test/changed",
+        )
+    ]
+
+    assert event_utils.select_new_event_candidates(rows) == []

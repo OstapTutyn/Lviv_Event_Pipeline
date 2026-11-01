@@ -10,7 +10,12 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-from event_utils import event_payload, parse_events, payload_hash
+from event_utils import (
+    event_payload,
+    parse_events,
+    payload_hash,
+    select_new_event_candidates,
+)
 
 DOU_URL = "https://dou.ua/calendar/city/%D0%9B%D1%8C%D0%B2%D1%96%D0%B2/"
 USER_AGENT = (
@@ -79,9 +84,10 @@ def load_events_to_postgres():
                         title,
                         event_date_text,
                         payload,
-                        payload_hash
+                        payload_hash,
+                        first_seen_at
                     )
-                    VALUES (%s, %s, %s, %s::jsonb, %s)
+                    VALUES (%s, %s, %s, %s::jsonb, %s, NOW())
                     """,
                     (
                         event_link,
@@ -163,20 +169,25 @@ def notify_new_events():
     connection = postgres_hook.get_conn()
     cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT event_link, title, event_date_text, payload_hash
+    cursor.execute(
+        """
+        SELECT
+            e.event_link,
+            e.title,
+            e.event_date_text,
+            e.payload_hash,
+            e.first_seen_at,
+            n.event_link AS notified_event_link
         FROM event_current e
-        WHERE NOT EXISTS (
-            SELECT 1
-            FROM telegram_notifications n
-            WHERE n.event_link = e.event_link
-              AND n.event_hash = e.payload_hash
-              AND n.notification_type = 'new_event'
-        )
-        ORDER BY event_date_text, event_link;
-    """)
+        LEFT JOIN telegram_notifications n
+            ON n.event_link = e.event_link
+           AND n.notification_type = 'new_event'
+        WHERE e.first_seen_at IS NOT NULL
+        ORDER BY e.event_date_text, e.event_link;
+        """
+    )
 
-    events = cursor.fetchall()
+    events = select_new_event_candidates(cursor.fetchall())
 
     try:
         for event_link, title, event_date_text, payload_hash in events:
